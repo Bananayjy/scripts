@@ -1,0 +1,16 @@
+# MYSQL用户名
+MYSQL_USERNAME=yjy
+# MYSQL密码
+MYSQL_PASSWORD=123456
+# MYSQL备份脚本名称
+MYSQL_BACKUP_SCRIPT_NAME=MySQL_BASE_BACKUP
+# MYSQLDUMP目标位置
+MYSQLDUMP_DIRECTORY=/nfadata/engine/mysql/bbin/mysqldump
+# MYSQL容器名称
+MYSQL_CONTAINER_NAME=mysql
+# 是否启用docker
+IF_DOCKER=1
+# 数据库名称
+DATABASES_NAME=(hsx hsx2)
+# 备份目标地址
+BACKUP_ROOT=/app/mysqlbak
