@@ -161,6 +161,12 @@ bash init.sh
 bash {生成的备份脚本的名称}.sh
 ```
 
+使用如下命令执行生成的清除日志脚本
+
+```
+bash MySQL_Clear.sh
+```
+
 如果想要添加定时执行，可以按照如下方法执行
 
 ```
@@ -285,7 +291,7 @@ create_MySQL_backup_script() {
 	touch "$MYSQL_BACKUP_SCRIPT_NAME.sh"
 	#向文件中写入内容
 	cat << EOF > "$MYSQL_BACKUP_SCRIPT_NAME.sh"
-#!/bin/usr/env bash
+#!/usr/bin/env bash
 
 DATABASES=(${DATABASES_NAME[@]})
 MYSQL_USERNAME=$MYSQL_USERNAME
@@ -312,7 +318,7 @@ mkdir -p /app/mysqlbak/data/$DATE
 for DB in "${DATABASES[@]}"
 do
         # 执行备份命令
-        $MYSQLDUMP_DIRECTORY -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --default-character-set=utf8 --hex-blob "$DB" > "$BACKUP_FILEDIR/$DATE/${DB}_${DATE}.sql"
+        $MYSQLDUMP_DIRECTORY -u"$MYSQL_USERNAME" -p"$MYSQL_PASSWORD" --default-character-set=utf8 --hex-blob "$DB" > "$BACKUP_FILEDIR/$DATE/${DB}_${DATE}.sql"
         # 检查是否成功
         if [ $? -eq 0 ]; then
                 echo "备份数据库 【$DB】 成功"
@@ -338,7 +344,7 @@ create_MySQL_backup_docker_script() {
 	touch "$MYSQL_BACKUP_SCRIPT_NAME.sh"
 	#向文件中写入内容
 	cat << EOF > "$MYSQL_BACKUP_SCRIPT_NAME.sh"
-#!/bin/usr/env bash
+#!/usr/bin/env bash
 
 DATABASES=(${DATABASES_NAME[@]})
 MYSQL_USERNAME=$MYSQL_USERNAME
@@ -385,7 +391,33 @@ EOF
 
 }
 
-# 具体调用
+
+# 5.MySQL定时清除脚本创建
+create_MySQL_Clear_script() {
+	touch "MySQL_Clear.sh"
+	#向文件中写入内容
+	cat << EOF > MySQL_Clear.sh
+#!/usr/bin/env bash
+
+BACKUP_ROOT=$BACKUP_ROOT
+BACKUP_FILEDIR=$BACKUP_ROOT/data
+
+EOF
+
+cat << 'EOF' >> MySQL_Clear.sh
+
+find "$BACKUP_FILEDIR" -mindepth 1 -maxdepth 1 -type d -ctime +15 -exec rm -r {} \;
+
+EOF
+
+#授予文件执行权限
+chmod +x MySQL_Clear.sh
+
+}
+
+
+
+# ------------------------具体调用------------------------
 # 调用解析配置文件函数
 parse_config_file "$CONFIG_FILE"
 
@@ -404,8 +436,10 @@ else
 	create_MySQL_backup_script
 fi
 
+# 生成定时清除脚本
+create_MySQL_Clear_script
 
-
+# 遍历打印当前备份的数据库详情
 for v in "${DATABASES_NAME[@]}";
 do
 	echo "当前备份的数据库详情:$v"
@@ -418,12 +452,13 @@ done
 echo "初始化完成"
 
 
+
 ```
 
 #### 2. 正常部署的MySQL实现数据库的备份脚本详情示例
 
 ```shell
-#!/bin/bash
+#!/usr/bin/env bash
 
 #备份目录路径
 BACKUP_ROOT=/app/mysqlbak
@@ -449,7 +484,7 @@ DATABASES=("hsx_config" "hsx")
 for DB in "${DATABASES[@]}"
 do
         # 执行备份命令
-        /nfdata/engine/mysql/bin/mysqldump -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --default-character-set=utf8 --hex-blob "$DB" > "$BACKUP_FILEDIR/$DATE/${DB}_${DATE}.sql"
+        /nfdata/engine/mysql/bin/mysqldump -u"$MYSQL_USERNAME" -p"$MYSQL_PASSWORD" --default-character-set=utf8 --hex-blob "$DB" > "$BACKUP_FILEDIR/$DATE/${DB}_${DATE}.sql"
         # 检查是否成功
         if [ $? -eq 0 ]; then
                 echo "备份数据库 【$DB】 成功"
@@ -468,7 +503,7 @@ echo $DATE" done"
 #### 3. Docker部署的MySQL实现数据库的备份脚本详情示例
 
 ```shell
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 #备份目录路径
 BACKUP_ROOT=/app/mysqlbak
@@ -510,5 +545,15 @@ echo $DATE" done"
 
 ```
 
+#### 4.定时清除脚本示例
 
+```shell
+#!/usr/bin/env bash
+
+BACKUP_ROOT=/app/mysqlbak
+BACKUP_FILEDIR=/app/mysqlbak/data
+
+find "$BACKUP_FILEDIR" -mindepth 1 -maxdepth 1 -type d -ctime +15 -exec rm -r {} \;
+
+```
 
