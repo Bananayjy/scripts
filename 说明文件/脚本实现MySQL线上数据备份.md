@@ -1,20 +1,18 @@
-# 脚本实现MySQL线上数据备份
+# MySQL线上数据备份脚本
 
 ## 一、前言
 
 ### 1.1 说明
 
-文章是对使用Shell脚本实现MySQL线上数据备份的方式进行探究和学习。
+文章是对使用Shell脚本实现MySQL线上数据备份的方式进行探究和学习，并实践应用。
 
-Shell脚本用于线上或本地MySQL数据库中对数据进行备份处理的shell脚本。
+该脚本工具用于对线上或本地MySQL数据库中的数据进行备份处理。
 
-相关脚本可以通过如下方式获取：
-
-- [github地址](https://github.com/Bananayjy/scripts/tree/MySQL_BackUp_Script)
+相关脚本可以通过github获取：[github地址](https://github.com/Bananayjy/scripts/tree/MySQL_BackUp_Script)
 
 ### 1.2 参考文章
 
-> [MySQL——使用mysqldump备份与恢复数据](https://blog.csdn.net/DreamEhome/article/details/133580992)
+- [MySQL——使用mysqldump备份与恢复数据](https://blog.csdn.net/DreamEhome/article/details/133580992)
 
 ### 1.3 前置知识点
 
@@ -122,21 +120,20 @@ mysql -u root -p123456 database_name < backup_file.sql
 
 ## 二、备份数据库shell脚本
 
-### 2.1 支持
+### 2.1 功能支持
 
 - 该脚本用于linux环境下的MySQL数据备份
-
-- 数据库全量数据的备份
-- 支持常用方式部署的MySQL数据库
-- 支持Docker方式部署的MySQL数据库
-- 通过配置文件进行动态配置
-- 可自行选择是否动态配置
+- 通过配置文件（config.txt）自动生成对应的备份脚本/清除备份数据脚本
+- 支持数据库全量数据的备份（目前未支持到数据表）
+- 支持普通MySQL的数据库数据备份
+- 支持Docker部署MySQL的数据库数据备份
+- 支持定时调用备份脚本/清除备份数据脚本
 
 ### 2.2 使用说明
 
 本脚本只支持在linux环境上使用
 
-获取init.sh和config.txt文件后，将其放到对应的linux虚拟机中
+获取init.sh和config.txt文件后，将其放到对应的linux虚拟机中任意目录中
 
 为两个文件添加权限
 
@@ -145,17 +142,40 @@ sudo chmod +x init.sh
 sudo chmod +x config.txt
 ```
 
-按照自己的需求修改config.txt中的参数
+按照自己的需求修改config.txt中的参数，各参数示例如下
 
-在init.sh目录下，执行脚本命令
+```txt
+# MYSQL用户名
+MYSQL_USERNAME=root
+# MYSQL密码
+MYSQL_PASSWORD=Cc123@leo
+# MYSQL备份脚本名称
+MYSQL_BACKUP_SCRIPT_NAME=MySQL_BASE_BACKUP
+# MYSQLDUMP目标位置 【如果是docker部署，使用容器内的mysqldump地址】
+MYSQLDUMP_DIRECTORY=/usr/bin/mysqldump
+# MYSQL容器名称 【docker部署需要配置】
+MYSQL_CONTAINER_NAME=mysql
+# mysql是否是docker部署 【0：否 1：是】
+IF_DOCKER=0
+# 需要备份的数据库名称
+DATABASES_NAME=(database1 database2)
+# 生成脚本、日志、备份数据目标地址（需要是绝对路径）
+DEST_DIR=/app/mysqlbak
+# 清除备份日志时间间隔(单位：天)
+CLEAR_CYCLE=7
+# 是否自动配置定时任务执行 【0：否 1：是】
+ENABLE_SCHEDULED_TASKS=1
+# 定时执行的cron表达式
+CRON='00 5 * * *'
+```
+
+在init.sh目录下，执行脚本命令，生成备份脚本和清除备份数据的脚本，并根据配置文件决定是否配置定时调用
 
 ```
 bash init.sh
 ```
 
-执行完脚本后会生成对应的脚本文件
-
-使用如下命令执行生成的脚本文，备份mysql数据库
+在生成脚本的目录下，手动使用如下命令执行生成的脚本文，备份mysql数据库
 
 ```
 bash {生成的备份脚本的名称}.sh
@@ -167,7 +187,7 @@ bash {生成的备份脚本的名称}.sh
 bash MySQL_Clear.sh
 ```
 
-如果想要添加定时执行，可以按照如下方法执行
+如果后续想要添加定时执行，可以按照如下方法进行配置（也可以直接在配置文件中设置ENABLE_SCHEDULED_TASKS为1，自动完成定时执行配置的添加）
 
 ```
 //加入计划任务
@@ -193,22 +213,27 @@ crontab -e
 
 ```txt
 # MYSQL用户名
-MYSQL_USERNAME=yjy
+MYSQL_USERNAME=root
 # MYSQL密码
-MYSQL_PASSWORD=123456
+MYSQL_PASSWORD=Cc123@leo
 # MYSQL备份脚本名称
 MYSQL_BACKUP_SCRIPT_NAME=MySQL_BASE_BACKUP
-# MYSQLDUMP目标位置
-MYSQLDUMP_DIRECTORY=/nfadata/engine/mysql/bin/mysqldump
-# MYSQL容器名称
+# MYSQLDUMP目标位置 【如果是docker部署，使用容器内的mysqldump地址】
+MYSQLDUMP_DIRECTORY=/usr/bin/mysqldump
+# MYSQL容器名称 【docker部署需要配置】
 MYSQL_CONTAINER_NAME=mysql
-# 是否基于docker部署Mysql
-IF_DOCKER=1
-# 数据库名称
-DATABASES_NAME=(hsx hsx2)
-# 备份目标地址
-BACKUP_ROOT=/app/mysqlbak
-
+# mysql是否是docker部署 【0：否 1：是】
+IF_DOCKER=0
+# 需要备份的数据库名称
+DATABASES_NAME=(database1 database2)
+# 生成脚本、日志、备份数据目标地址（需要是绝对路径）
+DEST_DIR=/app/mysqlbak
+# 清除备份日志时间间隔(单位：天)
+CLEAR_CYCLE=7
+# 是否自动配置定时任务执行 【0：否 1：是】
+ENABLE_SCHEDULED_TASKS=1
+# 定时执行的cron表达式
+CRON='00 5 * * *'
 ```
 
 - 初始化init.sh脚本内容，用于根据配置文件`config.txt`中声明的配置，生成对应的MYSQL备份脚本
@@ -216,11 +241,11 @@ BACKUP_ROOT=/app/mysqlbak
 ```shell
 #!/usr/bin/env bash
 
-# 变量声明
-# 1.配置文件
+# =============================变量声明=============================
+# 1.配置文件名称（默认名称为config.txt）
 CONFIG_FILE="config.txt"
 
-# 函数声明
+# =============================函数声明=============================
 # 1.解析配置文件函数
 parse_config_file() {
 	local file="$1"
@@ -269,47 +294,67 @@ check_required_params() {
   		echo "配置文件中缺少IF_DOCKER配置项！"
   		exit 1
 	fi
+	if [ -z "$CLEAR_CYCLE" ]; then
+  		echo "配置文件中缺少CLEAR_CYCLE配置项！"
+  		exit 1
+	fi
 	if [ -z "$IF_DOCKER" ]; then
   		echo "配置文件中缺少IF_DOCKER配置项！"
+  		exit 1
+	fi
+	if [ -z "$DEST_DIR" ]; then
+  		echo "配置文件中缺少DEST_DIR配置项！"
   		exit 1
 	fi
 	if [ -z "$DATABASES_NAME" ]; then
   		echo "配置文件中缺少DATABASES_NAME配置项！"
   		exit 1
 	fi
+	if [ -z "$ENABLE_SCHEDULED_TASKS" ]; then
+  		echo "配置文件中缺少ENABLE_SCHEDULED_TASKS配置项！"
+  		exit 1
+	fi
+	# 如果启用了定时调用查看是否配置了cron
+	if [ "$ENABLE_SCHEDULED_TASKS" = 1 ];then
+		if [ -z "$CRON" ]; then
+			echo "配置文件中缺少SCHEDULED_CRON配置项！"
+			exit 1
+		fi
+  fi
 	# 如果启用docker就查看是否配置了docker容器名称
-    if [ "$IF_DOCKER" = 1 ];then
-  		if [ -z "$MYSQL_CONTAINER_NAME" ]; then
-  			echo "配置文件中缺少MYSQL_CONTAINER_NAME配置项！"
-  			exit 1
-  		fi
-    fi
+  if [ "$IF_DOCKER" = 1 ];then
+		if [ -z "$MYSQL_CONTAINER_NAME" ]; then
+			echo "配置文件中缺少MYSQL_CONTAINER_NAME配置项！"
+			exit 1
+		fi
+  fi
 }
 
 # 3.MySQL备份脚本创建(基本)
 create_MySQL_backup_script() {
-	touch "$MYSQL_BACKUP_SCRIPT_NAME.sh"
+	echo "创建mysql数据备份脚本【基础版本】……"
+	touch "$SCRIPTS_DIR/$MYSQL_BACKUP_SCRIPT_NAME.sh"
 	#向文件中写入内容
-	cat << EOF > "$MYSQL_BACKUP_SCRIPT_NAME.sh"
+	cat << EOF > "$SCRIPTS_DIR/$MYSQL_BACKUP_SCRIPT_NAME.sh"
 #!/usr/bin/env bash
 
 DATABASES=(${DATABASES_NAME[@]})
 MYSQL_USERNAME=$MYSQL_USERNAME
 MYSQL_PASSWORD=$MYSQL_PASSWORD
 MYSQL_CONTAINER_NAME=$MYSQL_CONTAINER_NAME
-BACKUP_ROOT=$BACKUP_ROOT
-BACKUP_FILEDIR=$BACKUP_ROOT/data
+BACKUP_ROOT=$DEST_DIR
+BACKUP_FILEDIR=$DATA_DIR
 MYSQLDUMP_DIRECTORY=$MYSQLDUMP_DIRECTORY
 
 EOF
 
-	cat << 'EOF' >> "$MYSQL_BACKUP_SCRIPT_NAME.sh"
+	cat << 'EOF' >> "$SCRIPTS_DIR/$MYSQL_BACKUP_SCRIPT_NAME.sh"
 
 #获取当前日期
 DATE=$(date +%Y%m%d)
 
 #备份命令
-mkdir -p /app/mysqlbak/data/$DATE
+mkdir -p "$BACKUP_FILEDIR/$DATE"
 
 #需要备份的数据表配置
 #DATABASES=(${DATABASES_NAME[@]})
@@ -334,35 +379,38 @@ echo $DATE" done"
 EOF
 
 	#授予文件执行权限
-	chmod +x "$MYSQL_BACKUP_SCRIPT_NAME.sh"
+	chmod +x "$SCRIPTS_DIR/$MYSQL_BACKUP_SCRIPT_NAME.sh"
+	
+	echo "创建mysql数据备份脚本【基础版本】成功！"
 
 }
 
 
 # 4.MySQL备份脚本创建(Docker)
 create_MySQL_backup_docker_script() {
-	touch "$MYSQL_BACKUP_SCRIPT_NAME.sh"
+	echo "创建mysql数据备份脚本【docker版本】……"
+	touch "$SCRIPTS_DIR/$MYSQL_BACKUP_SCRIPT_NAME.sh"
 	#向文件中写入内容
-	cat << EOF > "$MYSQL_BACKUP_SCRIPT_NAME.sh"
+	cat << EOF > "$SCRIPTS_DIR/$MYSQL_BACKUP_SCRIPT_NAME.sh"
 #!/usr/bin/env bash
 
 DATABASES=(${DATABASES_NAME[@]})
 MYSQL_USERNAME=$MYSQL_USERNAME
 MYSQL_PASSWORD=$MYSQL_PASSWORD
 MYSQL_CONTAINER_NAME=$MYSQL_CONTAINER_NAME
-BACKUP_ROOT=$BACKUP_ROOT
-BACKUP_FILEDIR=$BACKUP_ROOT/data
+BACKUP_ROOT=$DEST_DIR
+BACKUP_FILEDIR=$DATA_DIR
 MYSQLDUMP_DIRECTORY=$MYSQLDUMP_DIRECTORY
 
 EOF
 
-	cat << 'EOF' >> "$MYSQL_BACKUP_SCRIPT_NAME.sh"
+	cat << 'EOF' >> "$SCRIPTS_DIR/$MYSQL_BACKUP_SCRIPT_NAME.sh"
 
 #获取当前日期
 DATE=$(date +%Y%m%d)
 
 #备份命令
-mkdir -p /app/mysqlbak/data/$DATE
+mkdir -p "$BACKUP_FILEDIR/$DATE"
 
 #需要备份的数据表配置
 #DATABASES=(${DATABASES_NAME[@]})
@@ -371,7 +419,7 @@ mkdir -p /app/mysqlbak/data/$DATE
 for DB in "${DATABASES[@]}"
 do
         # 执行备份命令
-        docker exec "$MYSQL_CONTAINER_NAME" $MYSQLDUMP_DIRECTORY -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --default-character-set=utf8 --hex-blob "$DB" > "$BACKUP_FILEDIR/$DATE/${DB}_${DATE}.sql"
+        docker exec "$MYSQL_CONTAINER_NAME" $MYSQLDUMP_DIRECTORY -u"$MYSQL_USERNAME" -p"$MYSQL_PASSWORD" --default-character-set=utf8 --hex-blob "$DB" > "$BACKUP_FILEDIR/$DATE/${DB}_${DATE}.sql"
         # 检查是否成功
         if [ $? -eq 0 ]; then
                 echo "备份数据库 【$DB】 成功"
@@ -387,51 +435,98 @@ echo $DATE" done"
 EOF
 
 	#授予文件执行权限
-	chmod +x "$MYSQL_BACKUP_SCRIPT_NAME.sh"
+	chmod +x "$SCRIPTS_DIR/$MYSQL_BACKUP_SCRIPT_NAME.sh"
+	
+	echo "创建mysql数据备份脚本【docker版本】成功！"
 
 }
 
 
 # 5.MySQL定时清除脚本创建
 create_MySQL_Clear_script() {
-	touch "MySQL_Clear.sh"
+	echo "创建mysql备份数据定时清除脚本……"
+	touch "$SCRIPTS_DIR/MySQL_Clear.sh"
 	#向文件中写入内容
-	cat << EOF > MySQL_Clear.sh
+	cat << EOF > "$SCRIPTS_DIR/MySQL_Clear.sh"
 #!/usr/bin/env bash
 
-BACKUP_ROOT=$BACKUP_ROOT
-BACKUP_FILEDIR=$BACKUP_ROOT/data
+BACKUP_ROOT=$DEST_DIR
+BACKUP_FILEDIR=$DATA_DIR
+CLEAR_CYCLE days=$CLEAR_CYCLE
 
 EOF
 
-cat << 'EOF' >> MySQL_Clear.sh
+cat << 'EOF' >> "$SCRIPTS_DIR/MySQL_Clear.sh"
 
-find "$BACKUP_FILEDIR" -mindepth 1 -maxdepth 1 -type d -ctime +15 -exec rm -r {} \;
+DELETE_DATE=$(date -d "$CLEAR_CYCLE days ago" +%Y%m%d)
+echo "当前删除任务的时间节点为：${DELETE_DATE}"
+
+# 使用 find 命令删除早于 DELETE_DATE 的文件
+find "$BACKUP_FILEDIR" -type d -regextype posix-extended -regex '.*/[0-9]{8}' | while read -r file; do
+    file_date=$(basename "$file")
+    if [[ "$file_date" < "$DELETE_DATE" ]]; then
+        echo "Deleting $file"
+        rm -r "$file"
+    fi
+done
+
+# 完成日志
+echo "当前删除任务的时间节点为: ${DELETE_DATE} 任务完成！"
 
 EOF
 
-#授予文件执行权限
-chmod +x MySQL_Clear.sh
+	#授予文件执行权限
+	chmod +x "$SCRIPTS_DIR/MySQL_Clear.sh"
 
+	echo "创建mysql备份数据定时清除脚本成功！"
+}
+
+# 6.配置定时任务执行
+configuring_Scheduled_Tasks() {
+	echo "配置定时任务……"
+	(crontab -l; echo "$CRON $SCRIPTS_DIR/$MYSQL_BACKUP_SCRIPT_NAME.sh > $LOGS_DIR/backup.log 2>&1 ") | crontab -
+	(crontab -l; echo "$CRON $SCRIPTS_DIR/MySQL_Clear.sh > $LOGS_DIR/clear.log 2>&1 ") | crontab -
+	echo "配置定时任务成功！"
+}
+
+# 7.初始化目录
+init_dir() {
+	echo "初始化目录……"
+  mkdir -p "$DATA_DIR"
+  echo "初始化目录$DATA_DIR"
+  mkdir -p "$SCRIPTS_DIR"
+  echo "初始化目录$SCRIPTS_DIR"
+  mkdir -p "$LOGS_DIR"
+	echo "初始化目录$LOGS_DIR"
+	echo "初始化目录完成！"
 }
 
 
 
-# ------------------------具体调用------------------------
+# =============================具体调用=============================
+echo "初始化……"
 # 调用解析配置文件函数
 parse_config_file "$CONFIG_FILE"
 
 # 调用检查必要参数配置函数
 check_required_params
 
+# 备份数据目录
+DATA_DIR="$DEST_DIR/data"
+# 相关脚本目录
+SCRIPTS_DIR="$DEST_DIR/scripts"
+# 相关日志目录
+LOGS_DIR="$DEST_DIR/logs"
+
+# 初始化目录
+init_dir
+
 # 决策生成对应的数据备份脚本
 if [ "$IF_DOCKER" = 1 ] 
 then
-	echo "此时创建的mysql数据备份脚本【docker版本】"
 	# 创建MYSQL备份脚本【docker】
-    create_MySQL_backup_docker_script
+  create_MySQL_backup_docker_script
 else
-	echo "此时创建的mysql数据备份脚本【基础版本】"
 	# 创建MYSQL备份脚本【基础版本】
 	create_MySQL_backup_script
 fi
@@ -442,8 +537,13 @@ create_MySQL_Clear_script
 # 遍历打印当前备份的数据库详情
 for v in "${DATABASES_NAME[@]}";
 do
-	echo "当前备份的数据库详情:$v"
+	echo "当前生成的脚本需要备份的数据库详情:$v"
 done
+
+# 开启了配置定时任务执行，就进行相关的配置
+if [ "$ENABLE_SCHEDULED_TASKS" = 1 ] ; then
+	configuring_Scheduled_Tasks
+fi
 
 # 执行MySQL备份脚本文件
 # bash $MYSQL_BACKUP_SCRIPT_NAME.sh
@@ -460,31 +560,29 @@ echo "初始化完成"
 ```shell
 #!/usr/bin/env bash
 
-#备份目录路径
-BACKUP_ROOT=/app/mysqlbak
-BACKUP_FILEDIR=$BACKUP_ROOT/data
+DATABASES=(database1 database2)
+MYSQL_USERNAME=root
+MYSQL_PASSWORD=123456
+MYSQL_CONTAINER_NAME=mysql
+BACKUP_ROOT=/app/mysqlbak/banana
+BACKUP_FILEDIR=/app/mysqlbak/banana/data
+MYSQLDUMP_DIRECTORY=/usr/bin/mysqldump
 
-#容器名称
-CONTAINER_NAME="mysql"
-
-#MYSQL配置
-MYSQL_USER="root"
-MYSQL_PASSWORD="Cc123@leo"
 
 #获取当前日期
 DATE=$(date +%Y%m%d)
 
 #备份命令
-mkdir -p /app/mysqlbak/data/$DATE
+mkdir -p "$BACKUP_FILEDIR/$DATE"
 
 #需要备份的数据表配置
-DATABASES=("hsx_config" "hsx")
+#DATABASES=(${DATABASES_NAME[@]})
 
 #备份数据表
 for DB in "${DATABASES[@]}"
 do
         # 执行备份命令
-        /nfdata/engine/mysql/bin/mysqldump -u"$MYSQL_USERNAME" -p"$MYSQL_PASSWORD" --default-character-set=utf8 --hex-blob "$DB" > "$BACKUP_FILEDIR/$DATE/${DB}_${DATE}.sql"
+        $MYSQLDUMP_DIRECTORY -u"$MYSQL_USERNAME" -p"$MYSQL_PASSWORD" --default-character-set=utf8 --hex-blob "$DB" > "$BACKUP_FILEDIR/$DATE/${DB}_${DATE}.sql"
         # 检查是否成功
         if [ $? -eq 0 ]; then
                 echo "备份数据库 【$DB】 成功"
@@ -505,31 +603,29 @@ echo $DATE" done"
 ```shell
 #!/usr/bin/env bash
 
-#备份目录路径
-BACKUP_ROOT=/app/mysqlbak
-BACKUP_FILEDIR=$BACKUP_ROOT/data
+DATABASES=(database1 database2)
+MYSQL_USERNAME=root
+MYSQL_PASSWORD=123456
+MYSQL_CONTAINER_NAME=mysql8
+BACKUP_ROOT=/app/mysqlbak/banana
+BACKUP_FILEDIR=/app/mysqlbak/banana/data
+MYSQLDUMP_DIRECTORY=/usr/bin/mysqldump
 
-#容器名称
-CONTAINER_NAME="mysql"
-
-#MYSQL配置
-MYSQL_USER="root"
-MYSQL_PASSWORD="Cc123@leo"
 
 #获取当前日期
 DATE=$(date +%Y%m%d)
 
 #备份命令
-mkdir -p /app/mysqlbak/data/$DATE
+mkdir -p "$BACKUP_FILEDIR/$DATE"
 
 #需要备份的数据表配置
-DATABASES=("hsx_config" "hsx")
+#DATABASES=(${DATABASES_NAME[@]})
 
 #备份数据表
 for DB in "${DATABASES[@]}"
 do
         # 执行备份命令
-        docker exec "$CONTAINER_NAME" /usr/bin/mysqldump -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --default-character-set=utf8 --hex-blob "$DB" > "$BACKUP_FILEDIR/$DATE/${DB}_${DATE}.sql"
+        docker exec "$MYSQL_CONTAINER_NAME" $MYSQLDUMP_DIRECTORY -u"$MYSQL_USERNAME" -p"$MYSQL_PASSWORD" --default-character-set=utf8 --hex-blob "$DB" > "$BACKUP_FILEDIR/$DATE/${DB}_${DATE}.sql"
         # 检查是否成功
         if [ $? -eq 0 ]; then
                 echo "备份数据库 【$DB】 成功"
@@ -550,10 +646,26 @@ echo $DATE" done"
 ```shell
 #!/usr/bin/env bash
 
-BACKUP_ROOT=/app/mysqlbak
-BACKUP_FILEDIR=/app/mysqlbak/data
+BACKUP_ROOT=/app/mysqlbak/banana
+BACKUP_FILEDIR=/app/mysqlbak/banana/data
+CLEAR_CYCLE days=7
 
-find "$BACKUP_FILEDIR" -mindepth 1 -maxdepth 1 -type d -ctime +15 -exec rm -r {} \;
+
+DELETE_DATE=$(date -d "$CLEAR_CYCLE days ago" +%Y%m%d)
+echo "当前删除任务的时间节点为：${DELETE_DATE}"
+
+# 使用 find 命令删除早于 DELETE_DATE 的文件
+find "$BACKUP_FILEDIR" -type d -regextype posix-extended -regex '.*/[0-9]{8}' | while read -r file; do
+    file_date=$(basename "$file")
+    if [[ "$file_date" < "$DELETE_DATE" ]]; then
+        echo "Deleting $file"
+        rm -r "$file"
+    fi
+done
+
+# 完成日志
+echo "当前删除任务的时间节点为: ${DELETE_DATE} 任务完成！"
+
 
 ```
 

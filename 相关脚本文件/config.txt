@@ -5,12 +5,18 @@ MYSQL_PASSWORD=123456
 # MYSQL备份脚本名称
 MYSQL_BACKUP_SCRIPT_NAME=MySQL_BASE_BACKUP
 # MYSQLDUMP目标位置
-MYSQLDUMP_DIRECTORY=/nfadata/engine/mysql/bbin/mysqldump
+MYSQLDUMP_DIRECTORY=/usr/bin/mysqldump
 # MYSQL容器名称
 MYSQL_CONTAINER_NAME=mysql
 # 是否启用docker
 IF_DOCKER=1
 # 数据库名称
 DATABASES_NAME=(hsx hsx2)
-# 备份目标地址
-BACKUP_ROOT=/app/mysqlbak
+# 生成文件(脚本、日志、备份数据)目标地址
+DEST_DIR=/app/mysqlbak/banana
+# 清除日志时间间隔(单位：天)
+CLEAR_CYCLE=7
+# 是否开始定时任务执行
+ENABLE_SCHEDULED_TASKS=1
+# 定时执行的cron表达式
+CRON="00 5 * * *" 
